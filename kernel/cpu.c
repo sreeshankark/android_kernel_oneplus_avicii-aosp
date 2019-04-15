@@ -2484,7 +2484,6 @@ const struct cpumask *const cpu_hp_mask = to_cpumask(&hp_cpu_bits);
 const struct cpumask *const cpu_hp_mask = cpu_possible_mask;
 #endif
 EXPORT_SYMBOL(cpu_hp_mask);
-
 void init_cpu_present(const struct cpumask *src)
 {
 	cpumask_copy(&__cpu_present_mask, src);
