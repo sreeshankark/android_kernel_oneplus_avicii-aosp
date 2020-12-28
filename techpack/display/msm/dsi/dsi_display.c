@@ -96,6 +96,599 @@ static const struct of_device_id dsi_display_dt_match[] = {
 	{}
 };
 
+static int esd_black_count;
+static int esd_greenish_count;
+static struct dsi_display *primary_display;
+static char reg_read_value[128] = {0};
+int reg_read_len = 1;
+EXPORT_SYMBOL(reg_read_len);
+
+#define to_dsi_bridge(x)  container_of((x), struct dsi_bridge, base)
+
+char buf_Lotid[6];
+
+typedef enum {
+	ToolB = 0,
+	ToolA = 1,
+	ToolA_HVS30 = 2,
+	Tool_Green = 10,
+} eTool;
+
+typedef struct {
+	char LotID[6];
+	int wafer_Start;
+	int wafer_End;
+	int HVS30;
+} LotDBItem;
+
+LotDBItem ANA6705_ToolA_DB[109] = {
+	{"K2T7N", 0, 0, 0},
+	{"K2T7P", 0, 0, 0},
+	{"K2TK4", 0, 0, 0},
+	{"K4ART", 1, 12, 1},
+	{"K4C07", 0, 0, 1},
+	{"K4C0A", 1, 12, 1},
+	{"K4C7S", 0, 0, 1},
+	{"K4C7T", 0, 0, 1},
+	{"K4CCH", 0, 0, 1},
+	{"K4CCN", 0, 0, 1},
+	{"K4CCP", 0, 0, 1},
+	{"K4CJL", 0, 0, 1},
+	{"K4CNS", 0, 0, 1},
+	{"K4C06", 0, 0, 1},
+	{"K4CNW", 0, 0, 1},
+	{"K4JGT", 0, 0, 1},
+	{"K4F8J", 0, 0, 1},
+	{"K4FFA", 0, 0, 1},
+	{"K4F4G", 0, 0, 1},
+	{"K4C82", 0, 0, 1},
+	{"K4CJM", 0, 0, 1},
+	{"K4CNT", 0, 0, 1},
+	{"K4F0T", 0, 0, 1},
+	{"K4F4K", 0, 0, 1},
+	{"K4F4N", 0, 0, 1},
+	{"K4JA8", 0, 0, 1},
+	{"K4JA8", 0, 0, 1},
+	{"K4J54", 0, 0, 1},
+	{"K4F4P", 0, 0, 1},
+	{"K4M9N", 0, 0, 1},
+	{"K4J6F", 0, 0, 1},
+	{"K4FFC", 0, 0, 1},
+	{"K4JQP", 0, 0, 1},
+	{"K4K5A", 0, 0, 1},
+	{"K4K19", 0, 0, 1},
+	{"K4K7L", 0, 0, 1},
+	{"K4JW4", 0, 0, 1},
+	{"K4MGK", 0, 0, 1},
+	{"K4KTR", 0, 0, 1},
+	{"K4L07", 0, 0, 1},
+	{"K4L07", 0, 0, 1},
+	{"K4MGJ", 0, 0, 1},
+	{"K4JLA", 0, 0, 1},
+	{"K4KTS", 0, 0, 1},
+	{"K4MGL", 0, 0, 1},
+	{"K4JJS", 0, 0, 1},
+	{"K4PYR", 0, 0, 1},
+	{"K4PS4", 0, 0, 1},
+	{"K4QC2", 0, 0, 1},
+	{"K4Q7K", 0, 0, 1},
+	{"K4PS5", 0, 0, 1},
+	{"K4Q3Q", 0, 0, 1},
+	{"K4Q3R", 0, 0, 1},
+	{"K4QC0", 0, 0, 1},
+	{"K4QHT", 0, 0, 1},
+	{"K4QC1", 0, 0, 1},
+	{"K4QHW", 0, 0, 1},
+	{"K4QMP", 0, 0, 1},
+	{"K4QMQ", 0, 0, 1},
+	{"K4QMR", 0, 0, 1},
+	{"K4Q7L", 0, 0, 1},
+	{"K4QRL", 0, 0, 1},
+	{"K4QYM", 0, 0, 1},
+	{"K4PYQ", 0, 0, 1},
+	{"K4QYN", 0, 0, 1},
+	{"K4R7A", 0, 0, 1},
+	{"K4QRM", 0, 0, 1},
+	{"K4R7F", 0, 0, 1},
+	{"K4R3L", 0, 0, 1},
+	{"K4QYP", 0, 0, 1},
+	{"K4R3K", 0, 0, 1},
+	{"K4RJ7", 0, 0, 1},
+	{"K4R7C", 0, 0, 1},
+	{"K4RC8", 0, 0, 1},
+	{"K4RNW", 0, 0, 1},
+	{"K4RS4", 0, 0, 1},
+	{"K4RC9", 0, 0, 1},
+	{"K4RJ8", 0, 0, 1},
+	{"K4RNS", 0, 0, 1},
+	{"K4RNT", 0, 0, 1},
+	{"K4RS5", 0, 0, 1},
+	{"K4RYL", 0, 0, 1},
+	{"K4RYM", 0, 0, 1},
+	{"K4S1S", 0, 0, 1},
+	{"K4S78", 0, 0, 1},
+	{"K4SAY", 0, 0, 1},
+	{"K4SHS", 0, 0, 1},
+	{"K4SHT", 0, 0, 1},
+	{"K4S1T", 0, 0, 1},
+	{"K4S77", 0, 0, 1},
+	{"K4SC1", 0, 0, 1},
+	{"K4SMM", 0, 0, 1},
+	{"K4SC0", 0, 0, 1},
+	{"K4SRA", 0, 0, 1},
+	{"K4TAM", 0, 0, 1},
+	{"K4TAN", 0, 0, 1},
+	{"K5G14", 0, 0, 1},
+	{"K5G16", 0, 0, 1},
+	{"K5G15", 0, 0, 1},
+	{"K5G4W", 0, 0, 1},
+	{"K5G4Y", 0, 0, 1},
+	{"K5G8W", 0, 0, 1},
+	{"K5G8Y", 0, 0, 1},
+	{"K5GFS", 0, 0, 1},
+	{"K5GFT", 0, 0, 1},
+	{"K5GFW", 0, 0, 1},
+	{"K5GL5", 0, 0, 1},
+	{"K5GL6", 0, 0, 1},
+	{"K5GNY", 0, 0, 1}
+};
+
+LotDBItem ANA6705_ToolB_DB[164] = {
+	{"K2T30", 0, 0, 0},
+	{"K2T2Y", 0, 0, 0},
+	{"K2T35", 0, 0, 0},
+	{"K2WJ7", 0, 0, 0},
+	{"K2WJ7", 0, 0, 0},
+	{"K2TPW", 0, 0, 0},
+	{"K2W76", 0, 0, 0},
+	{"K2TW7", 0, 0, 0},
+	{"K2WJ6", 0, 0, 0},
+	{"K2WJ6", 0, 0, 0},
+	{"K2T7N", 0, 0, 0},
+	{"K2T7P", 0, 0, 0},
+	{"K2TK3", 0, 0, 0},
+	{"K2TK4", 0, 0, 0},
+	{"K2TPY", 0, 0, 0},
+	{"K2TQ0", 0, 0, 0},
+	{"K2TQ1", 0, 0, 0},
+	{"K2TW8", 0, 0, 0},
+	{"K2TW9", 0, 0, 0},
+	{"K2TWA", 0, 0, 0},
+	{"K2W2K", 0, 0, 0},
+	{"K2W2L", 0, 0, 0},
+	{"K2W2M", 0, 0, 0},
+	{"K2W2N", 0, 0, 0},
+	{"K2W75", 0, 0, 0},
+	{"K2W77", 0, 0, 0},
+	{"K2W78", 0, 0, 0},
+	{"K2WCF", 0, 0, 0},
+	{"K2WCG", 0, 0, 0},
+	{"K2WCH", 0, 0, 0},
+	{"K2WCJ", 0, 0, 0},
+	{"K2WJ8", 0, 0, 0},
+	{"K2WJ9", 0, 0, 0},
+	{"K2WN8", 0, 0, 0},
+	{"K2WN9", 0, 0, 0},
+	{"K2WNC", 0, 0, 0},
+	{"K2WNF", 0, 0, 0},
+	{"K2WNH", 0, 0, 0},
+	{"K2WSF", 0, 0, 0},
+	{"K2WSG", 0, 0, 0},
+	{"K2WSH", 0, 0, 0},
+	{"K2WSJ", 0, 0, 0},
+	{"K2WSK", 0, 0, 0},
+	{"K2WSL", 0, 0, 0},
+	{"K2Y14", 0, 0, 0},
+	{"K2Y15", 0, 0, 0},
+	{"K2Y16", 0, 0, 0},
+	{"K2Y17", 0, 0, 0},
+	{"K2Y18", 0, 0, 0},
+	{"K2Y19", 0, 0, 0},
+	{"K3C74", 0, 0, 0},
+	{"K3FK0", 0, 0, 0},
+	{"K2TF5", 0, 0, 0},
+	{"K2TF7", 0, 0, 0},
+	{"K2TK1", 0, 0, 0},
+	{"K2TK2", 0, 0, 0},
+	{"K2WNA", 0, 0, 0},
+	{"K2Y13", 0, 0, 0},
+	{"K4A0F", 0, 0, 0},
+	{"K4A3C", 0, 0, 0},
+	{"K3YSJ", 0, 0, 0},
+	{"K4A6L", 0, 0, 0},
+	{"K4A6M", 0, 0, 0},
+	{"K4A83", 0, 0, 0},
+	{"K4A83", 0, 0, 0},
+	{"K4A83", 0, 0, 0},
+	{"K4A80", 0, 0, 0},
+	{"K3WYS", 0, 0, 0},
+	{"K4AMP", 0, 0, 0},
+	{"K3J0A", 0, 0, 0},
+	{"K3TQY", 0, 0, 0},
+	{"K4A6N", 0, 0, 0},
+	{"K4A81", 0, 0, 0},
+	{"K4A82", 0, 0, 0},
+	{"K4AF1", 0, 0, 0},
+	{"K4ALM", 0, 0, 0},
+	{"K4ALN", 0, 0, 0},
+	{"K4ALS", 0, 0, 0},
+	{"K4ALT", 0, 0, 0},
+	{"K4ALT", 0, 0, 0},
+	{"K4ALW", 0, 0, 0},
+	{"K4AMQ", 0, 0, 0},
+	{"K4AMY", 0, 0, 0},
+	{"K4AS0", 0, 0, 0},
+	{"K3T2T", 0, 0, 0},
+	{"K4ALR", 0, 0, 0},
+	{"K4ART", 13, 25, 0},
+	{"K4ARW", 0, 0, 0},
+	{"K4AS2", 0, 0, 0},
+	{"K4C4A", 0, 0, 0},
+	{"K2T36", 0, 0, 0},
+	{"K2T37", 0, 0, 0},
+	{"K2T7M", 0, 0, 0},
+	{"K3HT4", 0, 0, 0},
+	{"K3PRW", 0, 0, 0},
+	{"K4A84", 0, 0, 0},
+	{"K4AF2", 0, 0, 0},
+	{"K4ALQ", 0, 0, 0},
+	{"K4AMT", 0, 0, 0},
+	{"K4AS1", 0, 0, 0},
+	{"K4AS3", 0, 0, 0},
+	{"K4C04", 0, 0, 0},
+	{"K4C05", 0, 0, 0},
+	{"K4C08", 0, 0, 0},
+	{"K4C0A", 13, 25, 0},
+	{"K4C46", 0, 0, 0},
+	{"K4C7R", 0, 0, 0},
+	{"K4CJJ", 0, 0, 0},
+	{"K4CSW", 0, 0, 0},
+	{"K4FQW", 0, 0, 0},
+	{"K4ARY", 0, 0, 0},
+	{"K4ARY", 0, 0, 0},
+	{"K4AMR", 0, 0, 0},
+	{"K4CJH", 0, 0, 0},
+	{"K4CP2", 0, 0, 0},
+	{"K4CSS", 0, 0, 0},
+	{"K4CT2", 0, 0, 0},
+	{"K4CT3", 0, 0, 0},
+	{"K4F0P", 0, 0, 0},
+	{"K4F0Q", 0, 0, 0},
+	{"K4F0R", 0, 0, 0},
+	{"K4F0S", 0, 0, 0},
+	{"K4F0W", 0, 0, 0},
+	{"K4F0Y", 0, 0, 0},
+	{"K4F10", 0, 0, 0},
+	{"K4F4H", 0, 0, 0},
+	{"K4F4J", 0, 0, 0},
+	{"K4F4L", 0, 0, 0},
+	{"K4F8G", 0, 0, 0},
+	{"K4F8H", 0, 0, 0},
+	{"K4F8L", 0, 0, 0},
+	{"K4FQT", 0, 0, 0},
+	{"K4GLQ", 0, 0, 0},
+	{"K4GLR", 0, 0, 0},
+	{"K4FFF", 0, 0, 0},
+	{"K4FFG", 0, 0, 0},
+	{"K2WNG", 0, 0, 0},
+	{"K2WSC", 9, 25, 0},
+	{"K4C44", 0, 0, 0},
+	{"K4CCJ", 0, 0, 0},
+	{"K4CT0", 0, 0, 0},
+	{"K4CT1", 0, 0, 0},
+	{"K4CP1", 0, 0, 0},
+	{"K4CSY", 0, 0, 0},
+	{"K4F8F", 0, 0, 0},
+	{"K4C09", 0, 0, 0},
+	{"K4C06", 13, 25, 0},
+	{"K4C47", 0, 0, 0},
+	{"K4C48", 0, 0, 0},
+	{"K4C49", 0, 0, 0},
+	{"K4C7W", 0, 0, 0},
+	{"K4C80", 0, 0, 0},
+	{"K4C81", 0, 0, 0},
+	{"K4CCK", 0, 0, 0},
+	{"K4CCL", 0, 0, 0},
+	{"K4CCM", 0, 0, 0},
+	{"K4CCQ", 0, 0, 0},
+	{"K4CJC", 0, 0, 0},
+	{"K4CJF", 0, 0, 0},
+	{"K4CJG", 0, 0, 0},
+	{"K4CJK", 0, 0, 0},
+	{"K4CNY", 0, 0, 0},
+	{"K4CP0", 0, 0, 0},
+	{"K4CP3", 0, 0, 0}
+};
+
+LotDBItem ANA6706_ToolA_DB[121] = {
+	{"K4AN0", 1, 12, 0},
+	{"K4AJG", 1, 12, 0},
+	{"K4AS4", 1, 12, 0},
+	{"K4H99", 0, 0, 0},
+	{"K4C4C", 0, 0, 1},
+	{"K4H9A", 0, 0, 1},
+	{"K4HAC", 0, 0, 1},
+	{"K4J55", 0, 0, 1},
+	{"K4HAC", 0, 0, 1},
+	{"K4HM2", 0, 0, 1},
+	{"K4HPW", 0, 0, 1},
+	{"K4HYW", 0, 0, 1},
+	{"K4J56", 0, 0, 1},
+	{"K4J6G", 0, 0, 1},
+	{"K4J6H", 0, 0, 1},
+	{"K4J6J", 0, 0, 1},
+	{"K4JA9", 0, 0, 1},
+	{"K4JAA", 0, 0, 1},
+	{"K4JLH", 0, 0, 1},
+	{"K4JQR", 0, 0, 1},
+	{"K4JLG", 0, 0, 1},
+	{"K4HJ0", 0, 0, 1},
+	{"K4JAF", 0, 0, 1},
+	{"K4JGW", 0, 0, 1},
+	{"K4JGY", 0, 0, 1},
+	{"K4JLF", 0, 0, 1},
+	{"K4J29", 0, 0, 1},
+	{"K4JAC", 0, 0, 1},
+	{"K4JH0", 0, 0, 1},
+	{"K4JW7", 0, 0, 1},
+	{"K4HS4", 0, 0, 1},
+	{"K4HYY", 0, 0, 1},
+	{"K4K5G", 0, 0, 1},
+	{"K4JLC", 0, 0, 1},
+	{"K4KL8", 0, 0, 1},
+	{"K4K1G", 0, 0, 1},
+	{"K4K5C", 0, 0, 1},
+	{"K4JQQ", 0, 0, 1},
+	{"K4KG8", 0, 0, 1},
+	{"K4KQL", 0, 0, 1},
+	{"K4KTT", 0, 0, 1},
+	{"K4KG9", 0, 0, 1},
+	{"K4L5G", 0, 0, 1},
+	{"K4K1C", 0, 0, 1},
+	{"K4K5F", 0, 0, 1},
+	{"K4K9L", 0, 0, 1},
+	{"K4KG6", 0, 0, 1},
+	{"K4KQK", 0, 0, 1},
+	{"K4KG9", 0, 0, 1},
+	{"K4JQS", 0, 0, 1},
+	{"K4JW5", 0, 0, 1},
+	{"K4KG7", 0, 0, 1},
+	{"K4KL9", 0, 0, 1},
+	{"K4K9H", 0, 0, 1},
+	{"K4L9G", 0, 0, 1},
+	{"K4K5H", 0, 0, 1},
+	{"K4K9J", 0, 0, 1},
+	{"K4K9K", 0, 0, 1},
+	{"K4KLA", 0, 0, 1},
+	{"K4L1J", 0, 0, 1},
+	{"K4L1K", 0, 0, 1},
+	{"K4L1L", 0, 0, 1},
+	{"K4L5H", 0, 0, 1},
+	{"K4L5J", 0, 0, 1},
+	{"K4L9H", 0, 0, 1},
+	{"K4L9J", 0, 0, 1},
+	{"K4LGA", 0, 0, 1},
+	{"K4LGC", 0, 0, 1},
+	{"K4LKY", 0, 0, 1},
+	{"K4LL0", 0, 0, 1},
+	{"K4LL1", 0, 0, 1},
+	{"K4LPQ", 0, 0, 1},
+	{"K4LPR", 0, 0, 1},
+	{"K4LPS", 0, 0, 1},
+	{"K4LTP", 0, 0, 1},
+	{"K4LTQ", 0, 0, 1},
+	{"K4LTR", 0, 0, 1},
+	{"K4M1F", 0, 0, 1},
+	{"K4M1G", 0, 0, 1},
+	{"K4M5M", 0, 0, 1},
+	{"K4M5N", 0, 0, 1},
+	{"K4M5P", 0, 0, 1},
+	{"K4M9P", 0, 0, 1},
+	{"K4M9Q", 0, 0, 1},
+	{"K4MLL", 0, 0, 1},
+	{"K4MLM", 0, 0, 1},
+	{"K4MLN", 0, 0, 1},
+	{"K4MQY", 0, 0, 1},
+	{"K4MR0", 0, 0, 1},
+	{"K4MWS", 0, 0, 1},
+	{"K4MWT", 0, 0, 1},
+	{"K4MWW", 0, 0, 1},
+	{"K4N2K", 0, 0, 1},
+	{"K4N2L", 0, 0, 1},
+	{"K4N66", 0, 0, 1},
+	{"K4N67", 0, 0, 1},
+	{"K4N68", 0, 0, 1},
+	{"K4NPW", 0, 0, 1},
+	{"K4NPY", 0, 0, 1},
+	{"K4NQ0", 0, 0, 1},
+	{"K4NTS", 0, 0, 1},
+	{"K4NTT", 0, 0, 1},
+	{"K4NTW", 0, 0, 1},
+	{"K4P1F", 0, 0, 1},
+	{"K4P1G", 0, 0, 1},
+	{"K4P1H", 0, 0, 1},
+	{"K4P51", 0, 0, 1},
+	{"K4P52", 0, 0, 1},
+	{"K4P53", 0, 0, 1},
+	{"K4P8M", 0, 0, 1},
+	{"K4P8N", 0, 0, 1},
+	{"K4SMN", 0, 0, 1},
+	{"K4SMP", 0, 0, 1},
+	{"K4SRC", 0, 0, 1},
+	{"K4SRF", 0, 0, 1},
+	{"K4SY4", 0, 0, 1},
+	{"K4SY5", 0, 0, 1},
+	{"K4T6T", 0, 0, 1},
+	{"K4T6W", 0, 0, 1},
+	{"K4TAP", 0, 0, 1},
+	{"K4TAQ", 0, 0, 1}
+};
+
+LotDBItem ANA6706_ToolB_DB[8] = {
+	{"K4A6P", 0, 0, 0},
+	{"K4C0C", 0, 0, 0},
+	{"K4A85", 0, 0, 0},
+	{"K4AF3", 0, 0, 0},
+	{"K4AN0", 13, 25, 0},
+	{"K4AJG", 13, 25, 0},
+	{"K4AS4", 13, 24, 0},
+	{"K4HAR", 0, 0, 0},
+};
+
+LotDBItem ANA6706_Green[18] = {
+	{"K4C4C", 0, 0 ,0},
+	{"K4H9A", 0, 0 ,0},
+	{"K4HAR", 0, 0 ,0},
+	{"K4HJ0", 0, 0 ,0},
+	{"K4HM2", 0, 0 ,0},
+	{"K4HM3", 0, 0 ,0},
+	{"K4HPW", 0, 0 ,0},
+	{"K4HS4", 0, 0 ,0},
+	{"K4HYW", 0, 0 ,0},
+	{"K4HYY", 0, 0 ,0},
+	{"K4J29", 0, 0 ,0},
+	{"K4J55", 0, 0 ,0},
+	{"K4J6H", 0, 0 ,0},
+	{"K4J6J", 0, 0 ,0},
+	{"K4JAA", 0, 0 ,0},
+	{"K4JAC", 0, 0 ,0},
+	{"K4JH0", 0, 0 ,0},
+	{"K4JW8", 0, 0 ,0},
+};
+
+void extractLotID(unsigned char* chipID, char *szLotID)
+{
+	int i;
+	unsigned long lotValue = (chipID[0] << 14) + (chipID[1] << 6) + (chipID[2] >> 2);
+
+	szLotID[0] = 'K';
+	szLotID[1] = ((long)(lotValue / (36 * 36 * 36)) % 36) + 'A';
+
+	szLotID[2] = ((long)(lotValue / (36 * 36)) % 36) + 'A';
+	szLotID[3] = ((long)(lotValue / 36) % 36) + 'A';
+	szLotID[4] = (lotValue % 36) + 'A';
+
+	for (i = 1; i < 5; i++) {
+		if (szLotID[i] > 90)
+			szLotID[i] = (szLotID[i] - 91) + '0';
+	}
+}
+
+int extractWaferNumber(unsigned char* chipID)
+{
+	int noWafer;
+	noWafer = ((chipID[2] & 0x03) << 3) + (chipID[3] >> 5);
+	return noWafer;
+}
+
+eTool discrimination_ANA6705_ToolsType(char* szLotID, int WaferNumber)
+{
+	int i;
+	int count = sizeof(ANA6705_ToolA_DB) / sizeof(LotDBItem);
+	bool bFound = false;
+	eTool toolType;
+
+	for (i = 0; i < count; i++) {
+		if (strncmp(szLotID, ANA6705_ToolA_DB[i].LotID, 5) == 0) {
+			if (ANA6705_ToolA_DB[i].wafer_Start > 0) {
+				if (WaferNumber >= ANA6705_ToolA_DB[i].wafer_Start && WaferNumber <= ANA6705_ToolA_DB[i].wafer_End) {
+					bFound = true;
+					if (ANA6705_ToolA_DB[i].HVS30)
+						toolType = ToolA_HVS30;
+					else
+						toolType = ToolA;
+				}
+				break;
+			} else {
+				bFound = true;
+				if (ANA6705_ToolA_DB[i].HVS30)
+					toolType = ToolA_HVS30;
+				else
+					toolType = ToolA;
+				break;
+			}
+		}
+	}
+
+	if (bFound == false)
+		toolType = ToolB;
+
+	return toolType;
+}
+
+eTool discrimination_ANA6706_ToolsType(char* szLotID, int WaferNumber)
+{
+	int i;
+	int count = sizeof(ANA6706_ToolA_DB) / sizeof(LotDBItem);
+	bool bFound = false;
+	eTool toolType;
+
+	for (i = 0; i < count; i++) {
+		if (strncmp(szLotID, ANA6706_ToolA_DB[i].LotID, 5) == 0) {
+			if (ANA6706_ToolA_DB[i].wafer_Start > 0) {
+				if (WaferNumber >= ANA6706_ToolA_DB[i].wafer_Start && WaferNumber <= ANA6706_ToolA_DB[i].wafer_End) {
+					bFound = true;
+					if (ANA6706_ToolA_DB[i].HVS30)
+						toolType = ToolA_HVS30;
+					else
+						toolType = ToolA;
+				}
+				break;
+			} else {
+				bFound = true;
+				if (ANA6706_ToolA_DB[i].HVS30)
+					toolType = ToolA_HVS30;
+				else
+					toolType = ToolA;
+				break;
+			}
+		}
+	}
+
+	if (bFound == false)
+		toolType = ToolB;
+
+	return toolType;
+}
+
+int dsi_display_back_ToolsType_ANA6706(u8 *buff)
+{
+	int i;
+	int WaferNumber;
+	eTool typeTool;
+	char szLotID[6] = {0};
+	unsigned char chipID1[4] = {0};
+
+	for(i = 0; i < 4; i++)
+		chipID1[i] = buff[i];
+
+	// [6706] Chip IDLot IDWafer Number
+	extractLotID(chipID1, szLotID);
+	memcpy(buf_Lotid, szLotID, 6);
+	WaferNumber = extractWaferNumber(chipID1);
+
+	// LotID Wafer Number Tool Type
+	typeTool = discrimination_ANA6706_ToolsType(szLotID, WaferNumber);
+
+	if (typeTool == ToolB)
+		DSI_ERR("Result: 6706 LotID: %s WaferNo: %d, Tool: Tool-B (%d)\n", szLotID, WaferNumber, typeTool);
+	else if (typeTool == ToolA)
+		DSI_ERR("Result: 6706 LotID: %s WaferNo: %d, Tool: Tool-A (%d)\n", szLotID, WaferNumber, typeTool);
+	else if (typeTool == ToolA_HVS30)
+		DSI_ERR("Result: 6706 LotID: %s WaferNo: %d, Tool: Tool-A HVS 3.0 (%d)\n", szLotID, WaferNumber, typeTool);
+
+	for (i = 0; i < 18; i++) {
+		if((strcmp(szLotID, ANA6706_Green[i].LotID) == 0)) {
+			typeTool = Tool_Green;
+			break;
+		}
+	}
+
+	return typeTool;
+}
+
+static unsigned int cur_refresh_rate = 60;
+
 static void dsi_display_mask_ctrl_error_interrupts(struct dsi_display *display,
 			u32 mask, bool enable)
 {
@@ -8095,6 +8688,11 @@ int dsi_display_pre_commit(void *display,
 	return rc;
 }
 
+unsigned int dsi_panel_get_refresh_rate(void)
+{
+	return READ_ONCE(cur_refresh_rate);
+}
+
 int dsi_display_enable(struct dsi_display *display)
 {
 	int rc = 0;
@@ -8151,6 +8749,7 @@ int dsi_display_enable(struct dsi_display *display)
 	mutex_lock(&display->display_lock);
 
 	mode = display->panel->cur_mode;
+	WRITE_ONCE(cur_refresh_rate, mode->timing.refresh_rate);
 
 #ifdef OPLUS_BUG_STABILITY
 	if (cur_h_active != display->panel->cur_mode->timing.h_active) {
