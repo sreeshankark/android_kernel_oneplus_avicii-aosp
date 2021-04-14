@@ -285,7 +285,6 @@ static void sugov_fast_switch(struct sugov_policy *sg_policy, u64 time,
 			      unsigned int next_freq)
 {
 	struct cpufreq_policy *policy = sg_policy->policy;
-	unsigned int cpu;
 
 	if (!sugov_update_next_freq(sg_policy, time, next_freq))
 		return;
@@ -297,10 +296,9 @@ static void sugov_fast_switch(struct sugov_policy *sg_policy, u64 time,
 
 	policy->cur = next_freq;
 
-	if (trace_cpu_frequency_enabled()) {
-		for_each_cpu(cpu, policy->cpus)
-			trace_cpu_frequency(next_freq, cpu);
-	}
+#if defined(OPLUS_FEATURE_TASK_CPUSTATS) && defined(CONFIG_OPLUS_SCHED)
+	update_freq_info(policy);
+#endif /* defined(OPLUS_FEATURE_TASK_CPUSTATS) && defined(CONFIG_OPLUS_SCHED) */
 }
 
 static inline void walt_irq_work_queue(struct irq_work *work)
@@ -369,8 +367,6 @@ static unsigned int choose_freq(struct sugov_policy *sg_policy,
 						       loadadjfreq / tl,
 						       CPUFREQ_RELATION_L);
 		freq = policy->freq_table[index].frequency;
-
-		trace_choose_freq(freq, prevfreq, freqmax, freqmin, tl, index);
 
 		if (freq > prevfreq) {
 			/* The previous frequency is too low. */
@@ -473,9 +469,6 @@ static bool sugov_time_limit(struct sugov_policy *sg_policy,
 		delay = freq_to_above_hispeed_delay(sg_policy->tunables,
 							sg_policy->next_freq);
 		if (delta_ns < NSEC_PER_USEC * delay) {
-			trace_sugov_time_limit(cpumask_first(sg_policy->policy->cpus),
-					"above_hispeed_delay", delta_ns,
-					sg_policy->next_freq, next_freq);
 			return true;
 		}
 	}
@@ -519,10 +512,8 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	unsigned int prev_laf = prev_freq * util * 100 / max;
 
 	freq = choose_freq(sg_policy, prev_laf);
-	trace_sugov_next_freq_tl(policy->cpu, util, max, freq, prev_laf, prev_freq);
 #else
 	freq = map_util_freq(util, freq, max);
-	trace_sugov_next_freq(policy->cpu, util, max, freq);
 #endif
 
 	if (freq == sg_policy->cached_raw_freq && !sg_policy->need_freq_update)
@@ -923,12 +914,6 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	util = sugov_iowait_apply(sg_cpu, time, util, max);
 	sugov_calc_avg_cap(sg_policy, sg_cpu->walt_load.ws,
 			   sg_policy->policy->cur);
-
-	trace_sugov_util_update(sg_cpu->cpu, sg_cpu->util,
-				sg_policy->avg_cap, max, sg_cpu->walt_load.nl,
-				sg_cpu->walt_load.pl,
-				sg_cpu->walt_load.rtgb_active, flags);
-
 	sugov_walt_adjust(sg_cpu, &util, &max);
 	next_f = get_next_freq(sg_policy, util, max);
 	/*
@@ -1037,11 +1022,6 @@ sugov_update_shared(struct update_util_data *hook, u64 time, unsigned int flags)
 	sugov_calc_avg_cap(sg_policy, sg_cpu->walt_load.ws,
 			   sg_policy->policy->cur);
 	ignore_dl_rate_limit(sg_cpu, sg_policy);
-
-	trace_sugov_util_update(sg_cpu->cpu, sg_cpu->util, sg_policy->avg_cap,
-				sg_cpu->max, sg_cpu->walt_load.nl,
-				sg_cpu->walt_load.pl,
-				sg_cpu->walt_load.rtgb_active, flags);
 
 #ifdef OPLUS_FEATURE_SCHED_ASSIST
 	sg_policy->flags = flags;
