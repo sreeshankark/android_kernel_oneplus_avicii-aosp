@@ -19,6 +19,8 @@
 #include <linux/kthread.h>
 #include <linux/sched/core_ctl.h>
 
+static int touchboost = 1;
+
 /*
  * Sched will provide the data for every 20ms window,
  * will collect the data for 15 windows(300ms) and then update
