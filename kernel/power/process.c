@@ -111,8 +111,6 @@ static int try_to_freeze_tasks(bool user_only)
 		}
 		read_unlock(&tasklist_lock);
 	} else {
-		pr_cont("(elapsed %d.%03d seconds) ", elapsed_msecs / 1000,
-			elapsed_msecs % 1000);
 	}
 
 	return todo ? -EBUSY : 0;
@@ -145,9 +143,7 @@ int freeze_processes(void)
 	error = try_to_freeze_tasks(true);
 	if (!error) {
 		__usermodehelper_set_disable_depth(UMH_DISABLED);
-		pr_cont("done.");
 	}
-	pr_cont("\n");
 	BUG_ON(in_atomic());
 
 #ifndef CONFIG_ANDROID
@@ -183,9 +179,6 @@ int freeze_kernel_threads(void)
 	pm_nosig_freezing = true;
 	error = try_to_freeze_tasks(false);
 	if (!error)
-		pr_cont("done.");
-
-	pr_cont("\n");
 	BUG_ON(in_atomic());
 
 	if (error)
@@ -229,7 +222,6 @@ void thaw_processes(void)
 	usermodehelper_enable();
 
 	schedule();
-	pr_cont("done.\n");
 	trace_suspend_resume(TPS("thaw_processes"), 0, false);
 }
 
@@ -250,5 +242,4 @@ void thaw_kernel_threads(void)
 	read_unlock(&tasklist_lock);
 
 	schedule();
-	pr_cont("done.\n");
 }
