@@ -226,6 +226,20 @@ struct dsi_panel_oplus_privite {
 	bool low_light_adjust_gamma_support;
 	bool low_light_gamma_is_adjusted;
 	u32 low_light_adjust_gamma_level;
+	bool oplus_fp_hbm_config_flag;
+/********************************************
+	fp_type usage:
+	bit(0):lcd capacitive fingerprint(aod/fod are not supported)
+	bit(1):oled capacitive fingerprint(only support aod)
+	bit(2):optical fingerprint old solution(dim layer and pressed icon are controlled by kernel)
+	bit(3):optical fingerprint new solution(dim layer and pressed icon are not controlled by kernel)
+	bit(4):local hbm
+	bit(5):pressed icon brightness adaptive
+	bit(6):ultrasonic fingerprint
+	bit(7):ultra low power aod
+********************************************/
+	u32 fp_type;
+	u32 aod_low_brightness_threshold;
 };
 #endif /* OPLUS_BUG_STABILITY */
 
@@ -286,6 +300,10 @@ struct dsi_panel {
 	int ba_count;
 	struct oplus_brightness_alpha *dc_ba_seq;
 	int dc_ba_count;
+	struct oplus_brightness_alpha *aod_high_ba_seq;
+	int aod_high_ba_count;
+	struct oplus_brightness_alpha *aod_low_ba_seq;
+	int aod_low_ba_count;
 
 	struct dsi_panel_oplus_privite oplus_priv;
 	int panel_id2;
