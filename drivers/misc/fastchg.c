@@ -1,7 +1,7 @@
 /*
- * Author (legacy sysfs): Chad Froebel <chadfroebel@gmail.com>
+ * Author: Chad Froebel <chadfroebel@gmail.com>
  *
- * Port to instantnoodle/kebab and powers supply hooks: engstk <eng.stk@sapo.pt>
+ * Port to instantnoodle: engstk <eng.stk@sapo.pt>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
