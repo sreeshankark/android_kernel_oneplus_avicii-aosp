@@ -28,7 +28,6 @@ bool oplus_skip_pcc = false;
 bool apollo_backlight_enable = false;
 struct drm_msm_pcc oplus_save_pcc;
 int oplus_dimlayer_hbm = 0;
-int oplus_dimlayer_hbm_saved = 0;
 int oplus_aod_dim_alpha = CUST_A_NO;
 
 extern int oplus_underbrightness_alpha;
@@ -44,7 +43,6 @@ int oplus_dimlayer_hbm_vblank_count = 0;
 atomic_t oplus_dimlayer_hbm_vblank_ref = ATOMIC_INIT(0);
 bool oplus_enhance_mipi_strength = false;
 extern struct oplus_apollo_backlight_list *p_apollo_backlight;
-extern unsigned int is_project(int project);
 
 static struct oplus_brightness_alpha brightness_alpha_lut[] = {
 	{0, 0xff},
@@ -447,9 +445,6 @@ int dsi_panel_parse_oplus_config(struct dsi_panel *panel)
 		pr_err("Failed to found panel name, using dumming name\n");
 		panel->oplus_priv.manufacture_name = DSI_PANEL_OPLUS_DUMMY_MANUFACTURE_NAME;
 	}
-	panel->oplus_priv.esd_err_flag_enabled = utils->read_bool(utils->data,
-				"oplus,esd-err-flag-check-enabled");
-	DSI_INFO("oplus,esd-err-flag-check-enabled: %s", panel->oplus_priv.esd_err_flag_enabled ? "true" : "false");
 
 	panel->oplus_priv.aod_on_fod_off = utils->read_bool(utils->data,
 				"oplus,aod_on_fod_off");
@@ -508,9 +503,6 @@ int dsi_panel_parse_oplus_config(struct dsi_panel *panel)
 				"oplus,apollo_backlight_enable");
 	DSI_INFO("apollo_backlight_enable: %s", apollo_backlight_enable ? "true" : "false");
 
-	panel->oplus_priv.is_raw_backlight = utils->read_bool(utils->data, "oplus,raw-backlight");
-	pr_info("[%s]is_raw_backlight: %s", __func__, panel->oplus_priv.is_raw_backlight? "Yes" : "Not");
-
 #ifdef OPLUS_FEATURE_ADFR
 	if (oplus_adfr_is_support()) {
 		if (oplus_adfr_get_vsync_mode() == OPLUS_EXTERNAL_TE_TP_VSYNC) {
@@ -555,28 +547,6 @@ int dsi_panel_parse_oplus_config(struct dsi_panel *panel)
 
 		panel->oplus_priv.low_light_gamma_is_adjusted = false;
 	}
-
-	/*#ifdef OPLUS_BUG_STABILITY*/
-	panel->oplus_priv.oplus_fp_hbm_config_flag = utils->read_bool(utils->data, "oplus,fp-hbm-config-flag");
-	/*#ifdef OPLUS_BUG_STABILITY*/
-
-/*******************************************
-		fp_type usage:
-		bit(0):lcd capacitive fingerprint(aod/fod are not supported)
-		bit(1):oled capacitive fingerprint(only support aod)
-		bit(2):optical fingerprint old solution(dim layer and pressed icon are controlled by kernel)
-		bit(3):optical fingerprint new solution(dim layer and pressed icon are not controlled by kernel)
-		bit(4):local hbm
-		bit(5):pressed icon brightness adaptive
-		bit(6):ultrasonic fingerprint
-		bit(7):ultra low power aod
-********************************************/
-	if (is_project(20085)) {  /* oled capacitive fingerprint project */
-		panel->oplus_priv.fp_type = BIT(1);
-	} else {
-		panel->oplus_priv.fp_type = BIT(2);
-	}
-	pr_err("fp_type=0x%x", panel->oplus_priv.fp_type);
 
 	return 0;
 }
@@ -841,7 +811,7 @@ int oplus_display_panel_get_dimlayer_hbm(void *data)
 {
 	uint32_t *dimlayer_hbm = data;
 
-	(*dimlayer_hbm) = oplus_dimlayer_hbm_saved;
+	(*dimlayer_hbm) = oplus_dimlayer_hbm;
 
 	return 0;
 }
@@ -855,42 +825,27 @@ int oplus_display_panel_set_dimlayer_hbm(void *data)
 	int value = (*dimlayer_hbm);
 
 	value = !!value;
-	if (oplus_dimlayer_hbm_saved == value)
+	if (oplus_dimlayer_hbm == value)
 		return 0;
-	if (get_oplus_display_power_status() == OPLUS_DISPLAY_POWER_ON) {
-		if (!dsi_connector || !dsi_connector->state || !dsi_connector->state->crtc) {
-			pr_err("[%s]: display not ready\n", __func__);
+	if (!dsi_connector || !dsi_connector->state || !dsi_connector->state->crtc) {
+		pr_err("[%s]: display not ready\n", __func__);
+	} else {
+		err = drm_crtc_vblank_get(dsi_connector->state->crtc);
+		if (err) {
+			pr_err("failed to get crtc vblank, error=%d\n", err);
 		} else {
-			err = drm_crtc_vblank_get(dsi_connector->state->crtc);
-			if (err) {
-				pr_err("failed to get crtc vblank, error=%d\n", err);
-			} else {
-				/* do vblank put after 5 frames */
-				oplus_dimlayer_hbm_vblank_count = 5;
-				atomic_inc(&oplus_dimlayer_hbm_vblank_ref);
-			}
+			/* do vblank put after 5 frames */
+			oplus_dimlayer_hbm_vblank_count = 5;
+			atomic_inc(&oplus_dimlayer_hbm_vblank_ref);
 		}
-		oplus_dimlayer_hbm = value;
 	}
-	oplus_dimlayer_hbm_saved = value;
+	oplus_dimlayer_hbm = value;
 
 #ifdef OPLUS_BUG_STABILITY
-	pr_err("debug for oplus_display_set_dimlayer_hbm set oplus_dimlayer_hbm = %d, oplus_dimlayer_hbm_saved = %d\n",
-		oplus_dimlayer_hbm, oplus_dimlayer_hbm_saved);
+	pr_err("debug for oplus_display_set_dimlayer_hbm set oplus_dimlayer_hbm = %d\n", oplus_dimlayer_hbm);
 #endif
 
 	return 0;
-}
-
-void oplus_dimlayer_vblank(struct drm_crtc *crtc) {
-	int err = drm_crtc_vblank_get(crtc);
-	if (err) {
-		pr_err("failed to get crtc vblank, error=%d\n", err);
-	} else {
-		/* do vblank put after 5 frames */
-		oplus_dimlayer_hbm_vblank_count = 5;
-		atomic_inc(&oplus_dimlayer_hbm_vblank_ref);
-	}
 }
 
 int oplus_display_panel_notify_fp_press(void *data)
@@ -1028,10 +983,8 @@ int oplus_display_panel_notify_fp_press(void *data)
 	}
 #endif /* OPLUS_FEATURE_AOD_RAMLESS */
 
-	if (onscreenfp_status) {
-		err = drm_atomic_commit(state);
-		drm_atomic_state_put(state);
-	}
+	err = drm_atomic_commit(state);
+	drm_atomic_state_put(state);
 
 #ifdef OPLUS_FEATURE_AOD_RAMLESS
 	if (display->panel->oplus_priv.is_aod_ramless && mode_changed) {
@@ -1055,63 +1008,3 @@ error:
 	return 0;
 }
 
-int oplus_ofp_set_fp_type(void *buf)
-{
-	unsigned int *fp_type = buf;
-	struct dsi_display *display = get_main_display();
-
-	if (!display || !display->panel || !fp_type) {
-		pr_err("[%s]: Invalid params\n", __func__);
-		return -EINVAL;
-	}
-	display->panel->oplus_priv.fp_type = *fp_type;
-	return 0;
-}
-
-int oplus_ofp_get_fp_type(void *buf)
-{
-	unsigned int *fp_type = buf;
-	struct dsi_display *display = get_main_display();
-
-	if (!display || !display->panel || !fp_type) {
-		pr_err("[%s]: Invalid params\n", __func__);
-		return -EINVAL;
-	}
-
-	*fp_type = display->panel->oplus_priv.fp_type;
-	DSI_INFO("fp_type:%d\n", *fp_type);
-
-	return 0;
-}
-
-ssize_t oplus_ofp_set_fp_type_attr(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	unsigned int fp_type = 0;
-	struct dsi_display *display = get_main_display();
-
-
-	if (!display || !display->panel || !buf) {
-		pr_err("[%s]: Invalid params\n", __func__);
-		return 0;
-	}
-
-	sscanf(buf, "%du", &fp_type);
-	display->panel->oplus_priv.fp_type = fp_type;
-
-	return count;
-}
-
-ssize_t oplus_ofp_get_fp_type_attr(struct device *dev,
-				struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display = get_main_display();
-
-	if (!display || !display->panel || !buf) {
-		pr_err("[%s]: Invalid params\n", __func__);
-		return 0;
-	}
-	DSI_INFO("fp_type:%d\n", display->panel->oplus_priv.fp_type);
-	return sprintf(buf, "%d\n", display->panel->oplus_priv.fp_type);
-}
