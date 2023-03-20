@@ -1013,9 +1013,8 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 		rc = mipi_dsi_dcs_set_display_brightness(dsi, bl_lvl);
 
 #ifdef OPLUS_BUG_STABILITY
-	if (get_oplus_display_scene() == OPLUS_DISPLAY_AOD_SCENE) {
-		/* Don't set backlight; just update AoD mode */
-		oplus_update_aod_light_mode_unlock(panel);
+	if ((get_oplus_display_scene() == OPLUS_DISPLAY_AOD_SCENE) && ( bl_lvl == 1)) {
+		pr_err("dsi_cmd AOD mode return bl_lvl:%d\n",bl_lvl);
 		return 0;
 	}
 
