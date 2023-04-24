@@ -670,7 +670,6 @@ static int limits_dcvs_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	request_reg = be32_to_cpu(addr[0]) + LIMITS_CLUSTER_REQ_OFFSET;
-
 	/*
 	 * Setup virtual thermal zones for each LMH-DCVS hardware
 	 * The sensor does not do actual thermal temperature readings
@@ -679,7 +678,15 @@ static int limits_dcvs_probe(struct platform_device *pdev)
 	 * to set low/high thresholds.
 	 */
 	hw->temp_limits[LIMITS_TRIP_HI] = INT_MAX;
-	hw->temp_limits[LIMITS_TRIP_ARM] = 0;
+	hw->temp_limits[LIMITS_TRIP_ARM] = 0
+	
+	if (!IS_ENABLED(CONFIG_QTI_THERMAL_LIMITS_DCVS)) {
+		limits_isens_vref_ldo_init(pdev, hw);
+		devm_kfree(&pdev->dev, hw->cdev_data);
+		devm_kfree(&pdev->dev, hw);
+		return 0;
+	}
+
 	hw->hw_freq_limit = U32_MAX;
 	snprintf(hw->sensor_name, sizeof(hw->sensor_name), "limits_sensor-%02d",
 			affinity);
