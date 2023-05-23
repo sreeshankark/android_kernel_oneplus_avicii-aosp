@@ -1,2 +1,9 @@
 *.c   diff=cpp
 *.h   diff=cpp
+clang/lib/libLTO.so.17 filter=lfs diff=lfs merge=lfs -text
+clang/lib/libclang-cpp.so.17 filter=lfs diff=lfs merge=lfs -text
+clang/lib/liblldb.so.17.0.2 filter=lfs diff=lfs merge=lfs -text
+clang/bin/clang-check filter=lfs diff=lfs merge=lfs -text
+clang/bin/clang-tidy.real filter=lfs diff=lfs merge=lfs -text
+clang/bin/lld filter=lfs diff=lfs merge=lfs -text
+clang/bin/clang-17 filter=lfs diff=lfs merge=lfs -text
