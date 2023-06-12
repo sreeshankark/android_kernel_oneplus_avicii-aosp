@@ -529,23 +529,13 @@ static inline int dvb_dmx_swfilter_payload(struct dvb_demux_feed *feed,
 	p = 188 - count;
 
 	cc = buf[3] & 0x0f;
-	if (feed->first_cc)
-		ccok = 1;
-	else
-		ccok = ((feed->cc + 1) & 0x0f) == cc;
-
-	feed->first_cc = 0;
-	feed->cc = cc;
-
-	/* PUSI ? */
-	if (buf[1] & 0x40) {
-		dvb_dmx_check_pes_end(feed);
-		feed->pusi_seen = 1;
-		feed->peslen = 0;
-		feed->pes_tei_counter = 0;
-		feed->pes_cont_err_counter = 0;
-		feed->pes_ts_packets_num = 0;
+	ccok = ((feed->cc + 1) & 0x0f) == cc;
+	if (!ccok) {
+		set_buf_flags(feed, DMX_BUFFER_FLAG_DISCONTINUITY_DETECTED);
+		dprintk_sect_loss("missed packet: %d instead of %d!\n",
+				  cc, (feed->cc + 1) & 0x0f);
 	}
+	feed->cc = cc;
 
 	if (feed->pusi_seen == 0)
 		return 0;
@@ -649,7 +639,7 @@ static void dvb_dmx_swfilter_section_new(struct dvb_demux_feed *feed)
 		 */
 		if (sec->secbuf[0] != 0xff || sec->secbuf[n - 1] != 0xff) {
 			set_buf_flags(feed,
-				      DMX_BUF_FLAG_DISCONTINUITY_DETECTED);
+				      DMX_BUFFER_FLAG_DISCONTINUITY_DETECTED);
 			pr_debug("dvb_demux.c section ts padding loss: %d/%d\n",
 			       n, sec->tsfeedp);
 			pr_debug("dvb_demux.c pad data:\n");
@@ -694,7 +684,7 @@ static int dvb_dmx_swfilter_section_copy_dump(struct dvb_demux_feed *feed,
 
 	if (sec->tsfeedp + len > DMX_MAX_SECFEED_SIZE) {
 #ifdef DVB_DEMUX_SECTION_LOSS_LOG
-		set_buf_flags(feed, DMX_BUF_FLAG_DISCONTINUITY_DETECTED);
+		set_buf_flags(feed, DMX_BUFFER_FLAG_DISCONTINUITY_DETECTED);
 		pr_err("dvb_demux.c section buffer full loss: %d/%d\n",
 		       sec->tsfeedp + len - DMX_MAX_SECFEED_SIZE,
 		       DMX_MAX_SECFEED_SIZE);
@@ -730,7 +720,7 @@ static int dvb_dmx_swfilter_section_copy_dump(struct dvb_demux_feed *feed,
 			dvb_dmx_swfilter_section_feed(feed);
 		} else {
 			set_buf_flags(feed,
-				      DMX_BUF_FLAG_DISCONTINUITY_DETECTED);
+				      DMX_BUFFER_FLAG_DISCONTINUITY_DETECTED);
 #ifdef DVB_DEMUX_SECTION_LOSS_LOG
 			pr_err(
 			"dvb_demux.c pusi not seen, discarding section data\n"
@@ -761,17 +751,7 @@ static int dvb_dmx_swfilter_section_one_packet(struct dvb_demux_feed *feed,
 	p = 188 - count;	/* payload start */
 
 	cc = buf[3] & 0x0f;
-	if (feed->first_cc)
-		ccok = 1;
-	else
-		ccok = ((feed->cc + 1) & 0x0f) == cc;
-
-	/* discard TS packets holding sections with TEI bit set */
-	if (buf[1] & 0x80)
-		return -EINVAL;
-
-	feed->first_cc = 0;
-	feed->cc = cc;
+	ccok = ((feed->cc + 1) & 0x0f) == cc;
 
 	if (buf[3] & 0x20) {
 		/* adaption field present, check for discontinuity_indicator */
@@ -782,7 +762,7 @@ static int dvb_dmx_swfilter_section_one_packet(struct dvb_demux_feed *feed,
 	if (!ccok || dc_i) {
 #ifdef DVB_DEMUX_SECTION_LOSS_LOG
 		set_buf_flags(feed,
-			      DMX_BUF_FLAG_DISCONTINUITY_DETECTED);
+			      DMX_BUFFER_FLAG_DISCONTINUITY_DETECTED);
 		pr_err("dvb_demux.c discontinuity detected %d bytes lost\n",
 		       count);
 		/*
@@ -797,6 +777,7 @@ static int dvb_dmx_swfilter_section_one_packet(struct dvb_demux_feed *feed,
 		feed->pusi_seen = 0;
 		dvb_dmx_swfilter_section_new(feed);
 	}
+	feed->cc = cc;
 
 	if (buf[1] & 0x40) {
 		/* PUSI=1 (is set), section boundary is here */
@@ -1510,7 +1491,7 @@ static void dvb_dmx_swfilter_skip_pkt_cnt(struct dvb_demux *demux,
 						(feed->pid != 0x2000))
 					continue;
 				set_buf_flags(feed,
-						DMX_BUF_PKT_COUNTER_MISMATCH);
+						DMX_BUFFER_PKT_COUNTER_MISMATCH);
 			}
 
 			dprintk_tscheck("TS packet counter mismatch contd\n");
@@ -1562,7 +1543,7 @@ static void dvb_dmx_swfilter_one_packet(struct dvb_demux *demux, const u8 *buf,
 		list_for_each_entry(feed, &demux->feed_list, list_head) {
 			if ((feed->pid != pid) && (feed->pid != 0x2000))
 				continue;
-			set_buf_flags(feed, DMX_BUF_FLAG_TEI);
+			set_buf_flags(feed, DMX_BUFFER_FLAG_TEI);
 		}
 		dprintk_tscheck("TEI detected. PID=0x%x data1=0x%x\n",
 				pid, buf[1]);
